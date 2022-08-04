@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	actionUpload = "upload"
+	actionUpload   = "upload"
+	actionDownload = "download"
 )
 
 func Formatter(request *types.APIRequest, resource *types.RawResource) {
@@ -36,6 +37,9 @@ func Formatter(request *types.APIRequest, resource *types.RawResource) {
 
 	if resource.APIObject.Data().String("spec", "sourceType") == apisv1beta1.VirtualMachineImageSourceTypeUpload {
 		resource.AddAction(request, actionUpload)
+	}
+	if resource.APIObject.Data().String("spec", "sourceType") == apisv1beta1.VirtualMachineImageSourceTypeDownload {
+		resource.AddAction(request, actionDownload)
 	}
 }
 
@@ -66,9 +70,38 @@ func (h ImageActionHandler) do(rw http.ResponseWriter, req *http.Request) error 
 	switch action {
 	case actionUpload:
 		return h.uploadImage(rw, req)
+	case actionDownload:
+		return h.downloadImage(rw, req)
 	default:
 		return apierror.NewAPIError(validation.InvalidAction, "Unsupported action")
 	}
+}
+
+func (h ImageActionHandler) downloadImage(rw http.ResponseWriter, req *http.Request) error {
+	vars := mux.Vars(req)
+	namespace := vars["namespace"]
+	name := vars["name"]
+
+	bkimgName := fmt.Sprintf("%s-%s", namespace, name)
+	downloadUrl := fmt.Sprintf("http://longhorn-backend.longhorn-system:9500/v1/backingimages/%s/download", bkimgName)
+	downloadReq, err := http.NewRequestWithContext(req.Context(), http.MethodGet, downloadUrl, req.Body)
+	if err != nil {
+		return fmt.Errorf("Failed to create the download request: %w", err)
+	}
+	downloadReq.Header = req.Header
+	downloadReq.URL.RawQuery = req.URL.RawQuery
+
+	downloadResp, err := h.httpClient.Do(downloadReq)
+	if err != nil {
+		return fmt.Errorf("ailed to send the upload request: %w", err)
+	}
+	defer downloadResp.Body.Close()
+
+	if downloadResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Unexpected http Status code %d.", downloadResp.StatusCode)
+	}
+
+	return nil
 }
 
 func (h ImageActionHandler) uploadImage(rw http.ResponseWriter, req *http.Request) error {

@@ -18,6 +18,7 @@ func RegisterSchema(scaled *config.Scaled, server *server.Server, options config
 			s.Formatter = Formatter
 			s.ResourceActions = map[string]schemas.Action{
 				actionUpload: {},
+				actionDownload: {},
 			}
 			s.ActionHandlers = map[string]http.Handler{
 				actionUpload: ImageActionHandler{
@@ -27,6 +28,13 @@ func RegisterSchema(scaled *config.Scaled, server *server.Server, options config
 					BackingImageDataSources:     scaled.LonghornFactory.Longhorn().V1beta1().BackingImageDataSource(),
 					BackingImageDataSourceCache: scaled.LonghornFactory.Longhorn().V1beta1().BackingImageDataSource().Cache(),
 				},
+				actionDownload: ImageActionHandler{
+					httpClient:						http.Client{},
+					Images:							scaled.HarvesterFactory.Harvesterhci().V1beta1().VirtualMachineImage(),
+					ImageCache:						scaled.HarvesterFactory.Harvesterhci().V1beta1().VirtualMachineImage().Cache(),
+					BackingImageDataSources: 		scaled.LonghornFactory.Longhorn().V1beta1().BackingImageDataSource(),
+					BackingImageDataSourceCache: 	scaled.LonghornFactory.Longhorn().V1beta1().BackingImageDataSource().Cache(),
+				}
 			}
 		},
 	}

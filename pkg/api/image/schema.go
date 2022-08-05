@@ -17,7 +17,7 @@ func RegisterSchema(scaled *config.Scaled, server *server.Server, options config
 		Customize: func(s *types.APISchema) {
 			s.Formatter = Formatter
 			s.ResourceActions = map[string]schemas.Action{
-				actionUpload: {},
+				actionUpload:   {},
 				actionDownload: {},
 			}
 			s.ActionHandlers = map[string]http.Handler{
@@ -29,12 +29,12 @@ func RegisterSchema(scaled *config.Scaled, server *server.Server, options config
 					BackingImageDataSourceCache: scaled.LonghornFactory.Longhorn().V1beta1().BackingImageDataSource().Cache(),
 				},
 				actionDownload: ImageActionHandler{
-					httpClient:						http.Client{},
-					Images:							scaled.HarvesterFactory.Harvesterhci().V1beta1().VirtualMachineImage(),
-					ImageCache:						scaled.HarvesterFactory.Harvesterhci().V1beta1().VirtualMachineImage().Cache(),
-					BackingImageDataSources: 		scaled.LonghornFactory.Longhorn().V1beta1().BackingImageDataSource(),
-					BackingImageDataSourceCache: 	scaled.LonghornFactory.Longhorn().V1beta1().BackingImageDataSource().Cache(),
-				}
+					httpClient:                  http.Client{},
+					Images:                      scaled.HarvesterFactory.Harvesterhci().V1beta1().VirtualMachineImage(),
+					ImageCache:                  scaled.HarvesterFactory.Harvesterhci().V1beta1().VirtualMachineImage().Cache(),
+					BackingImageDataSources:     scaled.LonghornFactory.Longhorn().V1beta1().BackingImageDataSource(),
+					BackingImageDataSourceCache: scaled.LonghornFactory.Longhorn().V1beta1().BackingImageDataSource().Cache(),
+				},
 			}
 		},
 	}

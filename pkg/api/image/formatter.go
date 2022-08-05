@@ -38,9 +38,7 @@ func Formatter(request *types.APIRequest, resource *types.RawResource) {
 	if resource.APIObject.Data().String("spec", "sourceType") == apisv1beta1.VirtualMachineImageSourceTypeUpload {
 		resource.AddAction(request, actionUpload)
 	}
-	if resource.APIObject.Data().String("spec", "sourceType") == apisv1beta1.VirtualMachineImageSourceTypeDownload {
-		resource.AddAction(request, actionDownload)
-	}
+	resource.AddAction(request, actionDownload)
 }
 
 type ImageActionHandler struct {

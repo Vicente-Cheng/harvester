@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/longhorn/backupstore"
-
 	// Although we don't use following drivers directly, we need to import them to register drivers.
 	// NFS Ref: https://github.com/longhorn/backupstore/blob/3912081eb7c5708f0027ebbb0da4934537eb9d72/nfs/nfs.go#L47-L51
 	// S3 Ref: https://github.com/longhorn/backupstore/blob/3912081eb7c5708f0027ebbb0da4934537eb9d72/s3/s3.go#L33-L37

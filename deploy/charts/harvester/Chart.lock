@@ -5,6 +5,9 @@ dependencies:
 - name: kubevirt
   repository: file://dependency_charts/kubevirt
   version: 0.1.0
+- name: cdi
+  repository: file://dependency_charts/cdi
+  version: 0.3.0
 - name: harvester-network-controller
   repository: https://charts.harvesterhci.io
   version: 0.5.1
@@ -35,5 +38,5 @@ dependencies:
 - name: snapshot-validation-webhook
   repository: file://dependency_charts/snapshot-validation-webhook
   version: 0.2.0
-digest: sha256:c9e3ec5cf36918d885b6cb9fa0b62edeec5cc1104a07aeab4edef5ac9ec85a9c
-generated: "2025-01-02T17:18:44.099069119+08:00"
+digest: sha256:b8e6ba5e2c6894633d87bb0c93faa7edb080af2a4686cdd22ea8fb5f27d26e0a
+generated: "2025-01-05T01:33:55.459185279+08:00"

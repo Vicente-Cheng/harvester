@@ -107,6 +107,9 @@ kubevirt:
           resourceType: DaemonSet
           type: strategic
 
+cdi:
+  enabled: true
+
 ###########################################################################
 ###########################################################################
 ##                    Default values for Harvester                       ##

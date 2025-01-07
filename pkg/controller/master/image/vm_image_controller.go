@@ -73,6 +73,7 @@ func (h *vmImageHandler) OnChanged(_ string, vmi *harvesterv1.VirtualMachineImag
 }
 
 func (h *vmImageHandler) processVMImage(vmi *harvesterv1.VirtualMachineImage) (*harvesterv1.VirtualMachineImage, error) {
+	logrus.Infof("Processing vm image %s/%s", vmi.Namespace, vmi.Name)
 	err := h.backends[util.GetVMIBackend(vmi)].Check(vmi)
 	if common.IsRetryable(err) {
 		return h.handleRetry(vmi)
@@ -116,6 +117,7 @@ func (h *vmImageHandler) initialize(vmi *harvesterv1.VirtualMachineImage) (*harv
 }
 
 func (h *vmImageHandler) handleRetry(vmi *harvesterv1.VirtualMachineImage) (*harvesterv1.VirtualMachineImage, error) {
+	logrus.Infof("Handle Retry Error for vm image %s/%s", vmi.Namespace, vmi.Name)
 	if vmi.Status.LastFailedTime == "" {
 		return h.initialize(vmi)
 	}

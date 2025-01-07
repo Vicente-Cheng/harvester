@@ -3,6 +3,7 @@ kind: CDI
 metadata:
   name: cdi
 spec:
+  cloneStrategyOverride: snapshot
   {{- with .Values.cdi.config }}
   config:
   {{- toYaml . | nindent 4 }}

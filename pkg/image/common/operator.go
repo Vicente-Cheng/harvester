@@ -25,7 +25,7 @@ var (
 )
 
 func IsRetryable(err error) bool {
-	return errors.Is(err, ErrRetryable)
+	return apierrors.IsNotFound(err) || errors.Is(err, ErrRetryable)
 }
 
 func IsRetryLater(err error) bool {

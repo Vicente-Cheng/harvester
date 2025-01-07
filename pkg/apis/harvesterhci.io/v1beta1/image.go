@@ -71,6 +71,15 @@ type VirtualMachineImageSpec struct {
 
 	// +optional
 	SecurityParameters *VirtualMachineImageSecurityParameters `json:"securityParameters,omitempty"`
+
+	// extra fields for CDI
+	// +optional
+	// +kubebuilder:validation:Optional
+	TargetStorageClassName string `json:"targetStorageClassName,omitempty"`
+
+	// +optional
+	// +kubebuilder:validation:Optional
+	CDITargetVolumeSize int64 `json:"cdiTargetVolumeSize,omitempty"`
 }
 
 type VirtualMachineImageSecurityParameters struct {
@@ -141,6 +150,15 @@ type VirtualMachineImageStatus struct {
 
 	// +optional
 	Conditions []Condition `json:"conditions,omitempty"`
+
+	// extra fields for CDI
+	// +optional
+	// +kubebuilder:validation:Optional
+	TargetStorageClassName string `json:"targetStorageClassName,omitempty"`
+
+	// +optional
+	// +kubebuilder:validation:Optional
+	ImageVolume string `json:"imageVolume,omitempty"`
 }
 
 type Condition struct {

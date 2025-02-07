@@ -52,6 +52,8 @@ import (
 	fakestoragev1 "github.com/harvester/harvester/pkg/generated/clientset/versioned/typed/storage.k8s.io/v1/fake"
 	upgradev1 "github.com/harvester/harvester/pkg/generated/clientset/versioned/typed/upgrade.cattle.io/v1"
 	fakeupgradev1 "github.com/harvester/harvester/pkg/generated/clientset/versioned/typed/upgrade.cattle.io/v1/fake"
+	uploadv1beta1 "github.com/harvester/harvester/pkg/generated/clientset/versioned/typed/upload.cdi.kubevirt.io/v1beta1"
+	fakeuploadv1beta1 "github.com/harvester/harvester/pkg/generated/clientset/versioned/typed/upload.cdi.kubevirt.io/v1beta1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -187,4 +189,9 @@ func (c *Clientset) StorageV1() storagev1.StorageV1Interface {
 // UpgradeV1 retrieves the UpgradeV1Client
 func (c *Clientset) UpgradeV1() upgradev1.UpgradeV1Interface {
 	return &fakeupgradev1.FakeUpgradeV1{Fake: &c.Fake}
+}
+
+// UploadV1beta1 retrieves the UploadV1beta1Client
+func (c *Clientset) UploadV1beta1() uploadv1beta1.UploadV1beta1Interface {
+	return &fakeuploadv1beta1.FakeUploadV1beta1{Fake: &c.Fake}
 }

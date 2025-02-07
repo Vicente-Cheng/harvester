@@ -42,6 +42,7 @@ import (
 	snapshotv1 "github.com/harvester/harvester/pkg/generated/controllers/snapshot.storage.k8s.io"
 	ctlharvstoragev1 "github.com/harvester/harvester/pkg/generated/controllers/storage.k8s.io"
 	"github.com/harvester/harvester/pkg/generated/controllers/upgrade.cattle.io"
+	ctlcdiuploadv1 "github.com/harvester/harvester/pkg/generated/controllers/upload.cdi.kubevirt.io"
 )
 
 type (
@@ -79,6 +80,7 @@ type Scaled struct {
 	LonghornFactory          *longhornv1.Factory
 	RancherManagementFactory *rancherv3.Factory
 	CdiFactory               *ctlcdiv1.Factory
+	CdiUploadFactory         *ctlcdiuploadv1.Factory
 	starters                 []start.Starter
 
 	Management   *Management
@@ -116,6 +118,7 @@ type Management struct {
 	NodeConfigFactory         *ctlnodeharvester.Factory
 	RKEFactory                *rkev1.Factory
 	CdiFactory                *ctlcdiv1.Factory
+	CdiUploadFactory          *ctlcdiuploadv1.Factory
 
 	ClientSet  *kubernetes.Clientset
 	RestConfig *rest.Config
@@ -239,6 +242,13 @@ func SetupScaled(ctx context.Context, restConfig *rest.Config, opts *generic.Fac
 	}
 	scaled.CdiFactory = cdi
 	scaled.starters = append(scaled.starters, cdi)
+
+	cdiupload, err := ctlcdiuploadv1.NewFactoryFromConfigWithOptions(restConfig, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+	scaled.CdiUploadFactory = cdiupload
+	scaled.starters = append(scaled.starters, cdiupload)
 
 	scaled.Management, err = setupManagement(ctx, restConfig, opts)
 	if err != nil {
@@ -446,6 +456,13 @@ func setupManagement(ctx context.Context, restConfig *rest.Config, opts *generic
 	}
 	management.CdiFactory = cdi
 	management.starters = append(management.starters, cdi)
+
+	cdiupload, err := ctlcdiuploadv1.NewFactoryFromConfigWithOptions(restConfig, opts)
+	if err != nil {
+		return nil, err
+	}
+	management.CdiUploadFactory = cdiupload
+	management.starters = append(management.starters, cdiupload)
 
 	return management, nil
 }

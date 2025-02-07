@@ -112,12 +112,11 @@ func (h *vmImageHandler) initialize(vmi *harvesterv1.VirtualMachineImage) (*harv
 		}).Error(err.Error())
 		return h.vmio.FailInitial(toUpdate, err)
 	}
-
+	logrus.Infof("DEBUG: calling vm image %s/%s initialized", toUpdate.Namespace, toUpdate.Name)
 	return h.vmio.Initialized(toUpdate)
 }
 
 func (h *vmImageHandler) handleRetry(vmi *harvesterv1.VirtualMachineImage) (*harvesterv1.VirtualMachineImage, error) {
-	logrus.Infof("Handle Retry Error for vm image %s/%s", vmi.Namespace, vmi.Name)
 	if vmi.Status.LastFailedTime == "" {
 		return h.initialize(vmi)
 	}

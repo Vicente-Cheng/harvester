@@ -38,6 +38,7 @@ import (
 	snapshotv1 "github.com/harvester/harvester/pkg/generated/clientset/versioned/typed/snapshot.storage.k8s.io/v1"
 	storagev1 "github.com/harvester/harvester/pkg/generated/clientset/versioned/typed/storage.k8s.io/v1"
 	upgradev1 "github.com/harvester/harvester/pkg/generated/clientset/versioned/typed/upgrade.cattle.io/v1"
+	uploadv1beta1 "github.com/harvester/harvester/pkg/generated/clientset/versioned/typed/upload.cdi.kubevirt.io/v1beta1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -61,6 +62,7 @@ type Interface interface {
 	SnapshotV1() snapshotv1.SnapshotV1Interface
 	StorageV1() storagev1.StorageV1Interface
 	UpgradeV1() upgradev1.UpgradeV1Interface
+	UploadV1beta1() uploadv1beta1.UploadV1beta1Interface
 }
 
 // Clientset contains the clients for groups.
@@ -82,6 +84,7 @@ type Clientset struct {
 	snapshotV1          *snapshotv1.SnapshotV1Client
 	storageV1           *storagev1.StorageV1Client
 	upgradeV1           *upgradev1.UpgradeV1Client
+	uploadV1beta1       *uploadv1beta1.UploadV1beta1Client
 }
 
 // BatchV1 retrieves the BatchV1Client
@@ -162,6 +165,11 @@ func (c *Clientset) StorageV1() storagev1.StorageV1Interface {
 // UpgradeV1 retrieves the UpgradeV1Client
 func (c *Clientset) UpgradeV1() upgradev1.UpgradeV1Interface {
 	return c.upgradeV1
+}
+
+// UploadV1beta1 retrieves the UploadV1beta1Client
+func (c *Clientset) UploadV1beta1() uploadv1beta1.UploadV1beta1Interface {
+	return c.uploadV1beta1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -272,6 +280,10 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 	if err != nil {
 		return nil, err
 	}
+	cs.uploadV1beta1, err = uploadv1beta1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
@@ -309,6 +321,7 @@ func New(c rest.Interface) *Clientset {
 	cs.snapshotV1 = snapshotv1.New(c)
 	cs.storageV1 = storagev1.New(c)
 	cs.upgradeV1 = upgradev1.New(c)
+	cs.uploadV1beta1 = uploadv1beta1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

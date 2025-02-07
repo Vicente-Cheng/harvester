@@ -1,8 +1,11 @@
 package backingimage
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -86,8 +89,54 @@ func (biu *Uploader) Do(vmi *harvesterv1.VirtualMachineImage, req *http.Request)
 	}
 	uploadReq.Header = req.Header
 	uploadReq.URL.RawQuery = req.URL.RawQuery
+	urlParams := req.URL.Query()
+	fileSize := urlParams.Get("size")
+	logrus.Infof("[DEBUG] fileSize: %v", fileSize)
+	logrus.Infof("[DEBUG] req: %+v", req)
+
+	// no matter multipart or not, the first 4k would be enough
+	// to find the magic number and virtual size
+	tmpBuff := make([]byte, 4096)
+	len, err := req.Body.Read(tmpBuff)
+	if err != nil && err != io.EOF {
+		logrus.Infof("[DEBUG]: err: %v", err)
+	}
+
+	rawContent := tmpBuff[:len]
+	logrus.Infof("Read %d bytes from the request body", len)
+	//magicNumber := rawContent[0:4096]
+	// try to find the magic number of first 4096 bytes
+	// the multipart body will contain the boundary string and the headers.
+	// We should still find the magic number in the first 4096 bytes
+	headerEnd := []byte("\r\n\r\n")
+	headerEndIndex := bytes.Index(rawContent, headerEnd)
+	logrus.Infof("[DEBUG] headerEndIndex: %v", headerEndIndex)
+	qcowMagic := []byte("QFI\xfb")
+	index := bytes.Index(rawContent, qcowMagic)
+	if index == -1 {
+		logrus.Infof("Magic number is not correct: %v, this image is not qcow format", rawContent)
+	}
+	logrus.Infof("[DEBUG] index: %v", index)
+	// The virtual size is at 24-31 bytes (from the qcow image header)
+	virtualSizeRaw := rawContent[index+24 : index+32]
+	virtualSize := binary.BigEndian.Uint64(virtualSizeRaw)
+	logrus.Infof("[DEBUG] virtualSize: %v", virtualSize)
+
+	newBody := io.MultiReader(bytes.NewReader(rawContent), req.Body)
+
+	// Reassign r.Body to our new composite reader
+	uploadReq.Body = io.NopCloser(newBody)
+
+	//prefetchBuf := make([]byte, 128)
+	//var tmpBuff bytes.Buffer
+	//uploadReq.Body = io.NopCloser(io.TeeReader(req.Body, &tmpBuff))
+	//rawContent, err := tmpBuff.Read(prefetchBuf)
+	//if err != nil {
+	//	return fmt.Errorf("failed to read the request body: %w", err)
+	//}
 
 	var urlErr *url.Error
+	logrus.Infof("passing the upload request to %s", uploadURL)
 	uploadResp, err := biu.httpClient.Do(uploadReq)
 	if errors.As(err, &urlErr) {
 		// Trim the "POST http://xxx" implementation detail for the error

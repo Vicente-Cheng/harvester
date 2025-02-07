@@ -8,6 +8,7 @@ import (
 	"github.com/rancher/apiserver/pkg/apierror"
 	"github.com/rancher/apiserver/pkg/types"
 	"github.com/rancher/wrangler/v3/pkg/schemas/validation"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	apisv1beta1 "github.com/harvester/harvester/pkg/apis/harvesterhci.io/v1beta1"
@@ -99,6 +100,8 @@ func (h Handler) downloadImage(rw http.ResponseWriter, req *http.Request) error 
 
 func (h Handler) uploadImage(_ http.ResponseWriter, req *http.Request) error {
 	vars := util.EncodeVars(mux.Vars(req))
+	logrus.Infof("[DEBUG]: uploadImage from API, vars: %v", vars)
+	logrus.Infof("[DEBUG]: req: %+v", req)
 	namespace := vars["namespace"]
 	name := vars["name"]
 	vmi, err := h.vmiClient.Get(namespace, name, metav1.GetOptions{})
@@ -106,5 +109,6 @@ func (h Handler) uploadImage(_ http.ResponseWriter, req *http.Request) error {
 		return err
 	}
 
+	logrus.Infof("[DEBUG]: calling uploader.Do...")
 	return h.uploaders[util.GetVMIBackend(vmi)].Do(vmi, req)
 }

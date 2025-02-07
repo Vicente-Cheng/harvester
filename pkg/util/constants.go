@@ -92,6 +92,10 @@ const (
 	CSINodeStageSecretNameKey        = "csi.storage.k8s.io/node-stage-secret-name"
 	CSINodeStageSecretNamespaceKey   = "csi.storage.k8s.io/node-stage-secret-namespace"
 
+	// supported CSI provisioner
+	CSIProvisionerLonghorn = "driver.longhorn.io"
+	CSIProvisionerLVM      = "lvm.driver.harvesterhci.io"
+
 	LabelUpgradeReadMessage          = prefix + "/read-message"
 	LabelUpgradeState                = prefix + "/upgradeState"
 	UpgradeStateLoggingInfraPrepared = "LoggingInfraPrepared"

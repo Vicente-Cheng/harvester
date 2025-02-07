@@ -39,6 +39,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kubevirtv1 "kubevirt.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
+	uploadv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/upload/v1beta1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -62,6 +63,7 @@ var localSchemeBuilder = runtime.SchemeBuilder{
 	snapshotv1.AddToScheme,
 	storagev1.AddToScheme,
 	upgradev1.AddToScheme,
+	uploadv1beta1.AddToScheme,
 }
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition

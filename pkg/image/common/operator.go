@@ -263,7 +263,7 @@ func (vmio *vmiOperator) stateTransit(old *harvesterv1.VirtualMachineImage, stat
 	case VMImageStateInitialized:
 		newVMI := old.DeepCopy()
 		newVMI.Status.AppliedURL = newVMI.Spec.URL
-		newVMI.Status.StorageClassName = util.GetImageStorageClassName(newVMI.Name)
+		newVMI.Status.StorageClassName = util.GetImageStorageClassName(newVMI)
 		newVMI.Status.Progress = 0
 
 		harvesterv1.ImageImported.Unknown(newVMI)

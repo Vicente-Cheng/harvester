@@ -1,0 +1,72 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    {}
+  name: uploadtokenrequests.upload.cdi.kubevirt.io
+spec:
+  group: upload.cdi.kubevirt.io
+  names:
+    kind: UploadTokenRequest
+    listKind: UploadTokenRequestList
+    plural: uploadtokenrequests
+    shortNames:
+    - utr
+    - utrs
+    singular: uploadtokenrequest
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.pvcName
+      name: PVC
+      type: string
+    - jsonPath: .status.token
+      name: TOKEN
+      type: integer
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec contains the parameters of the request
+            properties:
+              pvcName:
+                description: PvcName is the name of the PVC to upload to
+                type: string
+            required:
+            - pvcName
+            type: object
+          status:
+            description: Status contains the status of the request
+            properties:
+              token:
+                description: Token is a JWT token to be inserted in "Authentication
+                  Bearer header"
+                type: string
+            type: object
+        required:
+        - metadata
+        - spec
+        - status
+        type: object
+    served: true
+    storage: true
+    subresources: {}

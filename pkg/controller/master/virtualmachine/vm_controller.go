@@ -8,6 +8,7 @@ import (
 	"time"
 
 	v1 "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
+	ctlstoragev1 "github.com/rancher/wrangler/v3/pkg/generated/controllers/storage/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -15,8 +16,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	kubevirt "kubevirt.io/api/core"
 	kubevirtv1 "kubevirt.io/api/core/v1"
+	cdiv1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 
 	harvesterv1 "github.com/harvester/harvester/pkg/apis/harvesterhci.io/v1beta1"
+	ctlcdiv1 "github.com/harvester/harvester/pkg/generated/controllers/cdi.kubevirt.io/v1beta1"
 	ctlharvesterv1 "github.com/harvester/harvester/pkg/generated/controllers/harvesterhci.io/v1beta1"
 	ctlkubevirtv1 "github.com/harvester/harvester/pkg/generated/controllers/kubevirt.io/v1"
 	ctlsnapshotv1 "github.com/harvester/harvester/pkg/generated/controllers/snapshot.storage.k8s.io/v1"
@@ -30,14 +33,20 @@ import (
 var syncLabelsToVmi = []string{util.LabelMaintainModeStrategy}
 
 type VMController struct {
+	dataVolumeClient ctlcdiv1.DataVolumeClient
+
 	pvcClient      v1.PersistentVolumeClaimClient
 	pvcCache       v1.PersistentVolumeClaimCache
 	vmClient       ctlkubevirtv1.VirtualMachineClient
 	vmController   ctlkubevirtv1.VirtualMachineController
 	vmiCache       ctlkubevirtv1.VirtualMachineInstanceCache
 	vmiClient      ctlkubevirtv1.VirtualMachineInstanceClient
+	vmImgClient    ctlharvesterv1.VirtualMachineImageClient
+	vmImgCache     ctlharvesterv1.VirtualMachineImageCache
 	vmBackupClient ctlharvesterv1.VirtualMachineBackupClient
 	vmBackupCache  ctlharvesterv1.VirtualMachineBackupCache
+	scClient       ctlstoragev1.StorageClassClient
+	scCache        ctlstoragev1.StorageClassCache
 	snapshotClient ctlsnapshotv1.VolumeSnapshotClient
 	snapshotCache  ctlsnapshotv1.VolumeSnapshotCache
 	recorder       record.EventRecorder
@@ -64,14 +73,41 @@ func (h *VMController) createPVCsFromAnnotation(_ string, vm *kubevirtv1.Virtual
 		err error
 	)
 	for _, pvcAnno := range pvcs {
-		pvcAnno.Namespace = vm.Namespace
-		if pvc, err = h.pvcCache.Get(vm.Namespace, pvcAnno.Name); apierrors.IsNotFound(err) {
-			if _, err = h.pvcClient.Create(pvcAnno); err != nil {
+		imageName := ""
+		imageNS := ""
+		createPVCWithDataVolume := false
+		if imageIDRaw, ok := pvcAnno.Annotations[util.AnnotationImageID]; ok {
+			imageID := strings.Split(imageIDRaw, "/")
+			if len(imageID) == 2 {
+				imageName = imageID[1]
+				imageNS = imageID[0]
+				vmImage, err := h.vmImgCache.Get(imageNS, imageName)
+				if err != nil {
+					logrus.Warnf("The corresponding VMImage is not created yet, error: %v. Skip this one", err)
+					continue
+				}
+				if vmImage.Spec.Backend == harvesterv1.VMIBackendCDI {
+					createPVCWithDataVolume = true
+				}
+			}
+		}
+
+		// create PVC
+		if createPVCWithDataVolume {
+			targetSCName := *pvcAnno.Spec.StorageClassName
+			if err := h.createDataVolume(pvcAnno.Name, vm.Namespace, imageName, imageNS, targetSCName, pvcAnno.Spec.Resources); err != nil {
 				return nil, err
 			}
-			continue
-		} else if err != nil {
-			return nil, err
+		} else {
+			pvcAnno.Namespace = vm.Namespace
+			if pvc, err = h.pvcCache.Get(vm.Namespace, pvcAnno.Name); apierrors.IsNotFound(err) {
+				if _, err = h.pvcClient.Create(pvcAnno); err != nil {
+					return nil, err
+				}
+				continue
+			} else if err != nil {
+				return nil, err
+			}
 		}
 
 		// Users also can resize volumes through Volumes page. In that case, we can't track the update in VM annotation.
@@ -364,4 +400,49 @@ func (h *VMController) removeDeprecatedFinalizer(_ string, vm *kubevirtv1.Virtua
 		return h.vmClient.Update(vmObj)
 	}
 	return vm, nil
+}
+
+func (h *VMController) createDataVolume(pvcName, pvcNS, imageID, imageNS, scName string, reqResources corev1.VolumeResourceRequirements) error {
+	sc, err := h.scCache.Get(scName)
+	if err != nil {
+		return fmt.Errorf("failed to get storage class %s: %w", scName, err)
+	}
+
+	accessMode := []corev1.PersistentVolumeAccessMode{}
+	if sc.Provisioner == util.CSIProvisionerLVM {
+		accessMode = append(accessMode, corev1.ReadWriteOnce)
+	} else {
+		accessMode = append(accessMode, corev1.ReadWriteMany)
+	}
+
+	// default volume mode is block
+	volumeMode := corev1.PersistentVolumeBlock
+
+	// generate dataVolumeTempate
+	dataVolumeTemplate := &cdiv1.DataVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pvcName,
+			Namespace: pvcNS,
+		},
+		Spec: cdiv1.DataVolumeSpec{
+			Source: &cdiv1.DataVolumeSource{
+				PVC: &cdiv1.DataVolumeSourcePVC{
+					Namespace: imageNS,
+					Name:      imageID,
+				},
+			},
+			Storage: &cdiv1.StorageSpec{
+				StorageClassName: &scName,
+				AccessModes:      accessMode,
+				VolumeMode:       &volumeMode,
+				Resources:        reqResources,
+			},
+		},
+	}
+
+	if _, err := h.dataVolumeClient.Create(dataVolumeTemplate); err != nil {
+		return fmt.Errorf("failed to create DataVolume %s/%s: %w", pvcNS, pvcName, err)
+	}
+
+	return nil
 }

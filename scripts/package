@@ -32,6 +32,7 @@ echo Tagged "${IMAGE_PUSH}"
 
 DOCKER_CONFIG="../.docker"
 if [[ -n ${PUSH} ]];then
+  docker login
   docker --config=${DOCKER_CONFIG} push "${IMAGE_PUSH}"
   echo Pushed "${IMAGE_PUSH}"
 fi

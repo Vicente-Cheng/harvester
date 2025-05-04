@@ -76,14 +76,15 @@ func (m *vmiMutator) getSC(scName string) (*storagev1.StorageClass, error) {
 		return nil, err
 	}
 
-	for _, storageClass := range storageClasses {
-		if storageClass.Annotations[util.AnnotationIsDefaultStorageClassName] == "true" &&
-			storageClass.Provisioner == longhorntypes.LonghornDriverName {
-			return storageClass, nil
-		}
+	defaultSC := util.GetDefaultSC(storageClasses)
+	if defaultSC == nil {
+		return nil, fmt.Errorf("no default storageClass found for backingImage")
+	}
+	if defaultSC.Provisioner != longhorntypes.LonghornDriverName {
+		return nil, fmt.Errorf("the provisioner of storageClass must be %s, not %s for backingImage", longhorntypes.LonghornDriverName, defaultSC.Provisioner)
 	}
 
-	return nil, nil
+	return defaultSC, nil
 }
 
 func (m *vmiMutator) PatchImageSCParams(vmi *harvesterv1.VirtualMachineImage) ([]string, error) {

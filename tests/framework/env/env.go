@@ -51,6 +51,10 @@ const (
 	// export USE_EXISTING_CLUSTER=true
 	// export SKIP_HARVESTER_INSTALLATION=true
 	// export DONT_USE_EMULATION=true
+
+	DefaultStorageClassName = "default-sc"
+
+	AnnoVMImageStorageClass = "harvesterhci.io/storageClassName"
 )
 
 // IsTrue validates that the specified environment variable is true.

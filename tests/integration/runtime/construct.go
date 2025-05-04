@@ -28,6 +28,12 @@ func Construct(ctx context.Context, kubeConfig *restclient.Config) error {
 		}
 	}
 
+	// create StorageClass for VM Image integration test
+	err = client.CreateDefaultStorageClass(kubeConfig, env.DefaultStorageClassName)
+	if err != nil {
+		return fmt.Errorf("failed to create default storage class, %v", err)
+	}
+
 	err = createCRDs(ctx, kubeConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create CRDs, %v", err)

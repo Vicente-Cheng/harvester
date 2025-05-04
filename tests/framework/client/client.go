@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	"github.com/rancher/wrangler/v3/pkg/generated/controllers/core"
+	"github.com/rancher/wrangler/v3/pkg/generated/controllers/storage"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
@@ -19,6 +21,35 @@ func CreateNamespace(kubeConfig *restclient.Config, namespace string) error {
 
 	namespaceController := coreFactory.Core().V1().Namespace()
 	_, err = namespaceController.Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+	return nil
+}
+
+func CreateDefaultStorageClass(kubeConfig *restclient.Config, name string) error {
+	storageFactory, err := storage.NewFactoryFromConfig(kubeConfig)
+	if err != nil {
+		return fmt.Errorf("faield to create core factory from kubernetes config, %v", err)
+	}
+
+	storageClassController := storageFactory.Storage().V1().StorageClass()
+	_, err = storageClassController.Create(&storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Annotations: map[string]string{
+				"storageclass.kubernetes.io/is-default-class": "true",
+			},
+		},
+		Provisioner: "driver.longhorn.io",
+		Parameters: map[string]string{
+			"migratable":          "true",
+			"numberOfReplicas":    "3",
+			"staleReplicaTimeout": "30",
+		},
+		ReclaimPolicy:     &[]corev1.PersistentVolumeReclaimPolicy{corev1.PersistentVolumeReclaimDelete}[0],
+		VolumeBindingMode: &[]storagev1.VolumeBindingMode{storagev1.VolumeBindingWaitForFirstConsumer}[0],
+	})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}

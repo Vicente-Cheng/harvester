@@ -33,6 +33,7 @@ func NewValidator(
 	nsCache v1.NamespaceCache,
 	podCache v1.PodCache,
 	pvcCache v1.PersistentVolumeClaimCache,
+	pvCache v1.PersistentVolumeCache,
 	rqCache ctlharvestercorev1.ResourceQuotaCache,
 	vmBackupCache ctlharvesterv1.VirtualMachineBackupCache,
 	vmimCache ctlkubevirtv1.VirtualMachineInstanceMigrationCache,
@@ -43,6 +44,7 @@ func NewValidator(
 ) types.Validator {
 	return &vmValidator{
 		pvcCache:      pvcCache,
+		pvCache:       pvCache,
 		vmBackupCache: vmBackupCache,
 		vmCache:       vmCache,
 		vmiCache:      vmiCache,
@@ -55,6 +57,7 @@ func NewValidator(
 type vmValidator struct {
 	types.DefaultValidator
 	pvcCache      v1.PersistentVolumeClaimCache
+	pvCache       v1.PersistentVolumeCache
 	vmBackupCache ctlharvesterv1.VirtualMachineBackupCache
 	vmCache       ctlkubevirtv1.VirtualMachineCache
 	vmiCache      ctlkubevirtv1.VirtualMachineInstanceCache
@@ -462,7 +465,27 @@ func (v *vmValidator) checkGoldenImage(vm *kubevirtv1.VirtualMachine) error {
 }
 
 func (v *vmValidator) checkOccupiedPVCs(vm *kubevirtv1.VirtualMachine) error {
+	// only block two scenarios:
+	// - RWO volume
+	// - Longhorn volume
+	// other scenarios like RWX volume, user should know what they are doing
 	for _, volume := range vm.Spec.Template.Spec.Volumes {
+		name := volume.PersistentVolumeClaim.ClaimName
+		pv, err := v.pvCache.Get(name)
+		if err != nil {
+			// any error here should be raised
+			return werror.NewInternalError(fmt.Sprintf("failed to get PV %s/%s, err: %s", vm.Namespace, name, err))
+		}
+		targetAccessMode := pv.Spec.AccessModes
+		targetCSIDriver := ""
+		if pv.Spec.CSI != nil {
+			targetCSIDriver = pv.Spec.CSI.Driver
+		}
+		for _, mode := range targetAccessMode {
+			if mode == corev1.ReadWriteMany && targetCSIDriver != util.CSIProvisionerLonghorn {
+				continue
+			}
+		}
 		if volume.PersistentVolumeClaim != nil {
 			vms, err := v.vmCache.GetByIndex(indexeresutil.VMByPVCIndex, ref.Construct(vm.Namespace, volume.PersistentVolumeClaim.ClaimName))
 			if err != nil {

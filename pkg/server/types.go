@@ -36,6 +36,7 @@ import (
 	"github.com/harvester/harvester/pkg/controller/master"
 	"github.com/harvester/harvester/pkg/data"
 	"github.com/harvester/harvester/pkg/indexeres"
+	"github.com/harvester/harvester/pkg/server/customizers"
 	"github.com/harvester/harvester/pkg/server/ui"
 )
 
@@ -290,6 +291,8 @@ func (s *HarvesterServer) generateSteveServer(options config.Options) error {
 		scaled.Start,
 	}
 
+	logrus.Infof("[VICENTE DBG]: Adding node customizer template")
+	s.steve.SchemaFactory.AddTemplate(customizers.NodeCustomizerTemplate)
 	return s.start(options)
 }
 

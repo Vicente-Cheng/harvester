@@ -1,0 +1,24 @@
+#!/bin/bash
+# DESC: Runs the harvester chart installation test: stand up a kind cluster, install the
+#       CRDs and harvester charts, and start the harvester API server/controllers
+#       in-process to verify the install. This is the BeforeSuite of
+#       scripts/test-integration split out into a standalone step; it does NOT run any
+#       Ginkgo spec. It exits 0 on success and tears the runtime down.
+#       Set KEEP_TESTING_CLUSTER=true to keep the cluster and block for inspection.
+set -e
+
+source $(dirname $0)/version
+
+# The root of the harvester directory
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+export PRELOADING_IMAGES="rancher/harvester-webhook:${TAG}"
+export WEBHOOK_IMAGE_NAME="rancher/harvester-webhook:${TAG}"
+
+echo "Running chart installation test (kind + CRDs + charts)"
+
+# The chart paths in tests/integration/runtime are relative to a suite package
+# directory (e.g. tests/integration/api), so run from the package directory to keep
+# the same working directory depth (../../../ resolves to the repo root).
+cd "${ROOT_DIR}/tests/integration/chartinstallation"
+CGO_ENABLED=0 go run -tags=test .

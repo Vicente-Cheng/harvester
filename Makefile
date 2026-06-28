@@ -67,7 +67,7 @@ DOCKER_BUILD = docker build $(MK_DOCKER_PULL) \
 	--build-arg MK_HOST_ARCH \
 	-f $(ROOT)/Dockerfile $(ROOT)
 
-.PHONY: build validate validate-ci test test-integration build-iso \
+.PHONY: build validate validate-ci test test-integration test-chart-installation build-iso \
 	package-all package package-harvester-webhook package-harvester-upgrade \
 	generate-manifest generate-openapi prepare-addons ci arm clean clean-all default \
 	gen-version-env gen-version-env-debug
@@ -124,6 +124,20 @@ test-integration: gen-version-env package-harvester-webhook
 	    -v harvester-test-integration-go-cache-${MK_REPO_ID}:/go/src/github.com/harvester/harvester/.cache/go-build \
 	    $(MK_TEST_INTEGRATION_IMAGE) \
 	    ./scripts/test-integration
+
+
+# ---- Test chart installation ----
+# Runs only the build-up phase of the integration suite: stand up kind, install the
+# CRDs/charts and start the harvester server in-process to verify the install, then
+# exit. Set KEEP_TESTING_CLUSTER=true to keep the cluster and block for inspection.
+test-chart-installation: gen-version-env package-harvester-webhook
+	$(BANNER)
+	$(DOCKER_BUILD) --target test-integration -t $(MK_TEST_INTEGRATION_IMAGE)
+	docker run $(MK_DOCKER_RUN_OPTS_TTY) --rm --privileged --network host \
+	    -v /var/run/docker.sock:/var/run/docker.sock \
+	    -v harvester-test-integration-go-cache-${MK_REPO_ID}:/go/src/github.com/harvester/harvester/.cache/go-build \
+	    $(MK_TEST_INTEGRATION_IMAGE) \
+	    ./scripts/test-chart-installation
 
 
 # ---- Package harvester image ----

@@ -14,3 +14,5 @@ jobs:
       iso_folder: ${{ github.ref_name }}
   calling-test-integration:
     uses: ./.github/workflows/test-integration.yml
+  calling-test-chart-installation:
+    uses: ./.github/workflows/test-chart-installation.yml
